@@ -88,4 +88,15 @@ if st.button("Analisar e Baixar"):
         st.success("✅ Download concluído com sucesso!")
         with open(filename, "rb") as f:
             st.download_button(
-                label
+                label="⬇️ Baixar vídeo",
+                data=f,
+                file_name=os.path.basename(filename),
+                mime="video/mp4"
+            )
+
+    except yt_dlp.utils.DownloadError as e:
+        st.error(f"❌ Erro yt-dlp: {e}")
+
+    except Exception as e:
+        st.error(f"❌ Erro inesperado: {e}")
+
