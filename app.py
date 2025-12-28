@@ -12,70 +12,55 @@ st.set_page_config(
 )
 
 st.title("🚀 Universal Video Downloader")
-st.write("Download com diagnóstico automático de proteção")
+st.write("Download direto usando sessão do Chrome (anti-bot do YouTube)")
 
 # ==============================
 # INPUT
 # ==============================
-url = st.text_input("Cole a URL do vídeo aqui:")
+url = st.text_input("Cole a URL do vídeo do YouTube:")
 
 # ==============================
-# BOTÃO PRINCIPAL
+# BOTÃO
 # ==============================
 if st.button("Analisar e Baixar"):
     if not url:
-        st.warning("Insira um link válido.")
+        st.warning("⚠️ Cole um link válido.")
         st.stop()
 
     try:
         # ==============================
-        # OPÇÕES DO yt-dlp (SEGURAS)
+        # OPÇÕES yt-dlp (FUNCIONAIS)
         # ==============================
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
-            'merge_output_format': 'mp4',
-            'outtmpl': '%(title)s.%(ext)s',
-            'noplaylist': True,
-            'quiet': True,
-        
-            # 🔑 ESSENCIAL
-            'cookiefile': 'cookies.txt',
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                              'AppleWebKit/537.36 (KHTML, like Gecko) '
-                              'Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://www.youtube.com/',
-                'Accept-Language': 'pt-BR,pt;q=0.9',
-            },
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4",
+            "outtmpl": "%(title)s.%(ext)s",
+            "noplaylist": True,
+            "quiet": False,
+
+            # 🔑 ESSENCIAL (ANTI-BOT)
+            "cookiesfrombrowser": ("chrome",),
         }
 
         # ==============================
         # ETAPA 1 — ANÁLISE
         # ==============================
-        with st.spinner("🔍 Analisando o conteúdo..."):
+        with st.spinner("🔍 Analisando o vídeo..."):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
-        st.subheader("🔍 Diagnóstico do Conteúdo")
-        st.write("**Extractor:**", info.get("extractor"))
+        st.subheader("🔍 Diagnóstico")
         st.write("**Título:**", info.get("title"))
-        st.write("**Site:**", info.get("webpage_url_domain"))
-        st.write("**DRM declarado:**", info.get("drm", False))
-        st.write("**É live:**", info.get("is_live", False))
-        st.write("**Quantidade de formatos encontrados:**", len(info.get("formats", [])))
+        st.write("**Canal:**", info.get("uploader"))
+        st.write("**É live:**", info.get("is_live"))
+        st.write("**DRM:**", info.get("drm", False))
+        st.write("**Formatos encontrados:**", len(info.get("formats", [])))
 
-        # ==============================
-        # BLOQUEIOS CONHECIDOS
-        # ==============================
         if info.get("drm"):
-            st.error("❌ Conteúdo protegido por DRM. Download não permitido.")
+            st.error("❌ Conteúdo com DRM. Não é possível baixar.")
             st.stop()
 
-        if not info.get("formats"):
-            st.error("❌ Nenhum formato disponível. Possível bloqueio do site.")
-            st.stop()
-
-        st.success("✔️ Formatos acessíveis detectados (sem DRM)")
+        st.success("✅ Vídeo liberado para download")
 
         # ==============================
         # ETAPA 2 — DOWNLOAD
@@ -85,28 +70,16 @@ if st.button("Analisar e Baixar"):
                 info = ydl.extract_info(url, download=True)
 
         # ==============================
-        # ETAPA 3 — LOCALIZAR ARQUIVO REAL
+        # LOCALIZAR ARQUIVO
         # ==============================
-        filename = None
+        filename = info.get("_filename")
 
-        if "requested_downloads" in info:
-            for d in info["requested_downloads"]:
-                if d.get("filepath"):
-                    filename = d["filepath"]
-                    break
-
-        if not filename:
-            filename = info.get("_filename")
-
-        # ==============================
-        # VALIDAÇÃO FINAL
-        # ==============================
         if not filename or not os.path.exists(filename):
-            st.error("❌ O arquivo final não foi localizado.")
+            st.error("❌ Arquivo não encontrado.")
             st.stop()
 
         if os.path.getsize(filename) == 0:
-            st.error("❌ O arquivo foi criado, mas está vazio.")
+            st.error("❌ Arquivo vazio (bloqueio do YouTube).")
             st.stop()
 
         # ==============================
@@ -115,14 +88,4 @@ if st.button("Analisar e Baixar"):
         st.success("✅ Download concluído com sucesso!")
         with open(filename, "rb") as f:
             st.download_button(
-                "⬇️ Clique para salvar o vídeo",
-                data=f,
-                file_name=os.path.basename(filename),
-                mime="video/mp4"
-            )
-
-    except yt_dlp.utils.DownloadError as e:
-        st.error(f"❌ Erro do yt-dlp: {e}")
-
-    except Exception as e:
-        st.error(f"❌ Erro inesperado: {e}")
+                label
