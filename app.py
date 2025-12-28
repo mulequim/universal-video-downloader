@@ -8,7 +8,9 @@ st.title("🚀 Universal Video Downloader")
 url = st.text_input("Cole a URL do vídeo aqui:")
 
 if st.button("Preparar Download"):
-    if url:
+    if not url:
+        st.warning("Insira um link.")
+    else:
         try:
             ydl_opts = {
                 'format': 'best[ext=mp4]/best',
@@ -17,12 +19,15 @@ if st.button("Preparar Download"):
                 'quiet': True,
             }
 
-            with st.spinner('Baixando vídeo...'):
+            with st.spinner("Baixando vídeo..."):
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=True)
                     filename = ydl.prepare_filename(info)
 
-            if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            # 🔒 VERIFICAÇÃO CRÍTICA
+            if not os.path.exists(filename) or os.path.getsize(filename) == 0:
+                st.error("❌ O arquivo foi gerado vazio. O site pode bloquear downloads.")
+            else:
                 with open(filename, "rb") as f:
                     st.success("✅ Vídeo pronto!")
                     st.download_button(
@@ -31,10 +36,6 @@ if st.button("Preparar Download"):
                         file_name=os.path.basename(filename),
                         mime="video/mp4"
                     )
-            else:
-                st.error("❌ Arquivo gerado está vazio.")
 
         except Exception as e:
             st.error(f"Erro detalhado: {e}")
-    else:
-        st.warning("Insira um link.")
